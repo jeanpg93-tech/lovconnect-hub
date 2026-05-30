@@ -143,12 +143,12 @@ grant select on public.license_devices to authenticated;
 grant all on public.license_devices to service_role;
 
 -- ---------------------------------------------------------------------------
--- license_sessions (online tracking / heartbeats)
+-- license_sessions (online tracking / heartbeats — only a hash of device_id)
 -- ---------------------------------------------------------------------------
 create table if not exists public.license_sessions (
   id uuid primary key default gen_random_uuid(),
   license_id uuid not null references public.licenses(id) on delete cascade,
-  hwid text,
+  device_id_hash text,
   ip text,
   user_agent text,
   online boolean not null default true,
