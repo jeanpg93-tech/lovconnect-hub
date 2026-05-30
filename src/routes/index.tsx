@@ -17,11 +17,9 @@ function Index() {
       navigate({ to: "/login", replace: true });
     } else if (role === "admin") {
       navigate({ to: "/admin", replace: true });
-    } else if (role === "reseller") {
-      navigate({ to: "/reseller", replace: true });
     } else {
-      // Logged in but no role yet → awaiting admin approval.
-      navigate({ to: "/pending", replace: true });
+      // Approval disabled: any logged-in account defaults to the reseller area.
+      navigate({ to: "/reseller", replace: true });
     }
   }, [loading, user, role, navigate]);
 
