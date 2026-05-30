@@ -1,0 +1,12 @@
+# LovConnect License Hub — Supabase CLI config
+# Run `supabase link --project-ref <your-ref>` then `supabase db push`.
+
+project_id = "lovconnect-license-hub"
+
+[functions.reseller-api]
+# Reseller API consumed via x-api-token header — no Supabase JWT required.
+verify_jwt = false
+
+[functions.validate-license]
+# Called directly by the Chrome extension — no Supabase JWT required.
+verify_jwt = false
