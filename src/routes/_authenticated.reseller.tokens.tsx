@@ -107,11 +107,12 @@ function ResellerTokensPage() {
       <PageHeader
         title="Meus tokens"
         description="Tokens de API para integrar sua revenda (apenas prefixo é exibido)."
-      >
-        <Button className="gap-2" onClick={() => setCreateOpen(true)}>
-          <Plus className="h-4 w-4" /> Criar token
-        </Button>
-      </PageHeader>
+        actions={
+          <Button className="gap-2" onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4" /> Criar token
+          </Button>
+        }
+      />
 
       <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
         Por segurança, o valor completo do token é exibido apenas uma vez no momento da geração.
