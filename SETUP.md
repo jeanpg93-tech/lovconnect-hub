@@ -230,6 +230,10 @@ Resposta padrão: `{"ok":true,"data":{...},"error":null,"code":null}` ou
 
 ---
 
+## Segurança (resumo)
+
+
+
 
 
 - A **service role key nunca** vai para o frontend nem para o `.env` do Vite.
