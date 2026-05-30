@@ -26,6 +26,7 @@ import { Route as AuthenticatedAdminResellersRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminNotificationsRouteImport } from './routes/_authenticated.admin.notifications'
 import { Route as AuthenticatedAdminLicensesRouteImport } from './routes/_authenticated.admin.licenses'
 import { Route as AuthenticatedAdminCreateLicenseRouteImport } from './routes/_authenticated.admin.create-license'
+import { Route as AuthenticatedAdminApprovalsRouteImport } from './routes/_authenticated.admin.approvals'
 
 const PendingRoute = PendingRouteImport.update({
   id: '/pending',
@@ -121,6 +122,12 @@ const AuthenticatedAdminCreateLicenseRoute =
     path: '/create-license',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminApprovalsRoute =
+  AuthenticatedAdminApprovalsRouteImport.update({
+    id: '/approvals',
+    path: '/approvals',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -128,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/pending': typeof PendingRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/reseller': typeof AuthenticatedResellerRouteWithChildren
+  '/admin/approvals': typeof AuthenticatedAdminApprovalsRoute
   '/admin/create-license': typeof AuthenticatedAdminCreateLicenseRoute
   '/admin/licenses': typeof AuthenticatedAdminLicensesRoute
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
@@ -144,6 +152,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/pending': typeof PendingRoute
+  '/admin/approvals': typeof AuthenticatedAdminApprovalsRoute
   '/admin/create-license': typeof AuthenticatedAdminCreateLicenseRoute
   '/admin/licenses': typeof AuthenticatedAdminLicensesRoute
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
@@ -164,6 +173,7 @@ export interface FileRoutesById {
   '/pending': typeof PendingRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/reseller': typeof AuthenticatedResellerRouteWithChildren
+  '/_authenticated/admin/approvals': typeof AuthenticatedAdminApprovalsRoute
   '/_authenticated/admin/create-license': typeof AuthenticatedAdminCreateLicenseRoute
   '/_authenticated/admin/licenses': typeof AuthenticatedAdminLicensesRoute
   '/_authenticated/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
@@ -184,6 +194,7 @@ export interface FileRouteTypes {
     | '/pending'
     | '/admin'
     | '/reseller'
+    | '/admin/approvals'
     | '/admin/create-license'
     | '/admin/licenses'
     | '/admin/notifications'
@@ -200,6 +211,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/pending'
+    | '/admin/approvals'
     | '/admin/create-license'
     | '/admin/licenses'
     | '/admin/notifications'
@@ -219,6 +231,7 @@ export interface FileRouteTypes {
     | '/pending'
     | '/_authenticated/admin'
     | '/_authenticated/reseller'
+    | '/_authenticated/admin/approvals'
     | '/_authenticated/admin/create-license'
     | '/_authenticated/admin/licenses'
     | '/_authenticated/admin/notifications'
@@ -360,10 +373,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCreateLicenseRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/approvals': {
+      id: '/_authenticated/admin/approvals'
+      path: '/approvals'
+      fullPath: '/admin/approvals'
+      preLoaderRoute: typeof AuthenticatedAdminApprovalsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
   }
 }
 
 interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminApprovalsRoute: typeof AuthenticatedAdminApprovalsRoute
   AuthenticatedAdminCreateLicenseRoute: typeof AuthenticatedAdminCreateLicenseRoute
   AuthenticatedAdminLicensesRoute: typeof AuthenticatedAdminLicensesRoute
   AuthenticatedAdminNotificationsRoute: typeof AuthenticatedAdminNotificationsRoute
@@ -374,6 +395,7 @@ interface AuthenticatedAdminRouteChildren {
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminApprovalsRoute: AuthenticatedAdminApprovalsRoute,
   AuthenticatedAdminCreateLicenseRoute: AuthenticatedAdminCreateLicenseRoute,
   AuthenticatedAdminLicensesRoute: AuthenticatedAdminLicensesRoute,
   AuthenticatedAdminNotificationsRoute: AuthenticatedAdminNotificationsRoute,
