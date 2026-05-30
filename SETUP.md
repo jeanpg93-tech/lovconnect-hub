@@ -93,7 +93,7 @@ supabase secrets list
 
 As functions estão em `supabase/functions/`:
 
-- `reseller-api` — API de revenda (`x-api-token`). Stub agora, completa na Fase 4.
+- `reseller-api` — API de revenda (`x-api-token` / JWT). **Completa (Fase 4)** — veja o contrato no fim deste arquivo.
 - `validate-license` — validação para a extensão. Stub agora, completa na Fase 5.
 
 ```bash
