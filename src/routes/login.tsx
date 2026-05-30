@@ -55,7 +55,7 @@ function LoginPage() {
         if (error) throw error;
         toast.success("Bem-vindo de volta!");
       }
-      navigate({ to: "/admin", replace: true });
+      navigate({ to: "/", replace: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha na autenticação.");
     } finally {
