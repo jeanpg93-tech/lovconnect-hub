@@ -94,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     session,
     user: session?.user ?? null,
     role,
+    status,
     loading,
     configured: isSupabaseConfigured,
     refreshRole: async () => {
@@ -102,6 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut: async () => {
       await supabase.auth.signOut();
       setRole(null);
+      setStatus(null);
     },
   };
 
