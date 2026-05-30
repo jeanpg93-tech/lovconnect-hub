@@ -419,7 +419,11 @@ async function hListTokens({ admin, caller }: Ctx): Promise<Response> {
 }
 
 async function hRevokeToken({ admin, caller, body }: Ctx): Promise<Response> {
+  // Token revocation is a panel-only action — never allowed via an API token.
+  if (caller.viaToken)
+    return fail("Tokens de API não podem revogar tokens. Use o painel logado.", "TOKEN_CANNOT_REVOKE_TOKEN", 403);
   const id = str(body.token_id);
+
   if (!id) return fail("Informe 'token_id'.", "MISSING_ID", 400);
   const { data: row } = await admin.from("api_tokens").select("id,user_id").eq("id", id).maybeSingle();
   if (!row) return fail("Token não encontrado.", "NOT_FOUND", 404);
