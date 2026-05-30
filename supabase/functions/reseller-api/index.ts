@@ -20,6 +20,7 @@ import { resolveCaller, type Caller } from "../_shared/auth.ts";
 import {
   generateApiToken,
   generateLicenseKey,
+  generateTrialKey,
   keyPrefix,
   maskKey,
   sha256Hex,
