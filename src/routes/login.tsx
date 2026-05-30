@@ -28,7 +28,7 @@ function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) navigate({ to: "/admin", replace: true });
+    if (!loading && user) navigate({ to: "/", replace: true });
   }, [loading, user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {

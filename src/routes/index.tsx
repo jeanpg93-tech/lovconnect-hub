@@ -17,9 +17,8 @@ function Index() {
       navigate({ to: "/login", replace: true });
     } else if (role === "admin") {
       navigate({ to: "/admin", replace: true });
-    } else {
-      // Reseller panel arrives in Fase 3; route admins/resellers sensibly.
-      navigate({ to: "/admin", replace: true });
+    } else if (role === "reseller") {
+      navigate({ to: "/reseller", replace: true });
     }
   }, [loading, user, role, navigate]);
 
