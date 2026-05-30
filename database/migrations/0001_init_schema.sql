@@ -112,6 +112,7 @@ create table if not exists public.licenses (
   client_email text,
   type text not null default 'normal',        -- normal | trial | lifetime
   status text not null default 'active',       -- active | trial | expired | revoked
+  lifetime boolean not null default false,     -- convenience flag for API/extension
   plan_id uuid references public.plans(id) on delete set null,
   reseller_id uuid references auth.users(id) on delete set null,
   created_by uuid references auth.users(id) on delete set null,
