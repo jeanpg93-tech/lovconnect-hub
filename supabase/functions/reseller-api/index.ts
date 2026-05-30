@@ -127,6 +127,15 @@ async function findLicense(
   return { row: (data as Record<string, unknown>) ?? null, error: null };
 }
 
+/** Admins manage anything; resellers only their own licenses. */
+function canManage(caller: Caller, row: Record<string, unknown>): boolean {
+  return (
+    caller.role === "admin" ||
+    row.reseller_id === caller.userId ||
+    row.created_by === caller.userId
+  );
+}
+
 // ---------------------------------------------------------------------------
 // endpoint handlers
 // ---------------------------------------------------------------------------
