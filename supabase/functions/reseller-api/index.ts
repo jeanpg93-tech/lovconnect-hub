@@ -205,17 +205,21 @@ async function hGenerateTrial({ admin, caller, body }: Ctx): Promise<Response> {
 }
 
 async function hGenerateLicense({ admin, caller, body }: Ctx): Promise<Response> {
-  const type = body.type === "lifetime" ? "lifetime" : "normal";
+  // Accept both type="lifetime" and lifetime=true.
+  const isLifetime = body.type === "lifetime" || bool(body.lifetime);
+  const type = isLifetime ? "lifetime" : "normal";
   const clientName = str(body.client_name);
   const clientEmail = str(body.client_email);
   const notes = str(body.notes);
   const targetReseller = caller.role === "admin" ? (str(body.reseller_user_id) ?? null) : caller.userId;
 
+  // Accept duration object AND top-level days/hours/minutes/seconds.
   const dur = (body.duration ?? {}) as Record<string, unknown>;
   const days = num(body.days) || num(dur.days);
-  const hours = num(dur.hours);
-  const minutes = num(dur.minutes);
-  const totalMs = ((days * 24 + hours) * 60 + minutes) * 60 * 1000;
+  const hours = num(body.hours) || num(dur.hours);
+  const minutes = num(body.minutes) || num(dur.minutes);
+  const seconds = num(body.seconds) || num(dur.seconds);
+  const totalMs = (((days * 24 + hours) * 60 + minutes) * 60 + seconds) * 1000;
   const totalDays = totalMs / 86_400_000;
 
   if (type === "normal" && totalMs <= 0)
