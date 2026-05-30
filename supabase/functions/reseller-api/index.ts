@@ -274,35 +274,59 @@ async function hGenerateLicense({ admin, caller, body }: Ctx): Promise<Response>
   return ok({ license_key: key, masked_key: lic.masked_key, id: lic.id, type: lic.type, expires_at: lic.expires_at });
 }
 
-async function hListLicenses({ admin, caller }: Ctx): Promise<Response> {
+async function hListLicenses({ admin, caller, body }: Ctx): Promise<Response> {
+  const statusFilter = (str(body.status) ?? "all").toLowerCase();
+  const search = str(body.search) ?? str(body.q);
+  const page = Math.max(1, Math.floor(num(body.page)) || 1);
+  const perPageRaw = Math.floor(num(body.per_page)) || 20;
+  const perPage = Math.min(200, Math.max(1, perPageRaw));
+  const from = (page - 1) * perPage;
+  const to = from + perPage - 1;
+
   let q = admin
     .from("licenses")
-    .select("id,masked_key,client_name,client_email,type,status,expires_at,created_at")
+    .select(
+      "id,masked_key,client_name,client_email,type,status,expires_at,created_at",
+      { count: "exact" },
+    )
     .order("created_at", { ascending: false });
-  if (caller.role !== "admin") q = q.eq("reseller_id", caller.userId);
-  const { data, error } = await q;
-  if (error) return fail(error.message, "DB_ERROR", 500);
-  return ok({ licenses: data ?? [] });
-}
 
-async function authorizeLicense(admin: SupabaseClient, caller: Caller, licenseId: string) {
-  const { data } = await admin
-    .from("licenses")
-    .select("id,reseller_id,created_by,status,type")
-    .eq("id", licenseId)
-    .maybeSingle();
-  if (!data) return { license: null, allowed: false };
-  const allowed =
-    caller.role === "admin" || data.reseller_id === caller.userId || data.created_by === caller.userId;
-  return { license: data, allowed };
+  if (caller.role !== "admin") q = q.eq("reseller_id", caller.userId);
+
+  // status: all | active | trial | expired | revoked
+  if (statusFilter === "trial") {
+    q = q.eq("type", "trial");
+  } else if (["active", "expired", "revoked"].includes(statusFilter)) {
+    q = q.eq("status", statusFilter);
+  }
+
+  if (search) {
+    const term = search.replace(/[%,]/g, " ").trim();
+    q = q.or(
+      `masked_key.ilike.%${term}%,client_name.ilike.%${term}%,client_email.ilike.%${term}%`,
+    );
+  }
+
+  q = q.range(from, to);
+
+  const { data, error, count } = await q;
+  if (error) return fail(error.message, "DB_ERROR", 500);
+  const total = count ?? 0;
+  return ok({
+    licenses: data ?? [],
+    page,
+    per_page: perPage,
+    total,
+    total_pages: Math.max(1, Math.ceil(total / perPage)),
+  });
 }
 
 async function hResetHwid({ admin, caller, body }: Ctx): Promise<Response> {
-  const id = str(body.license_id);
-  if (!id) return fail("Informe 'license_id'.", "MISSING_ID", 400);
-  const { license, allowed } = await authorizeLicense(admin, caller, id);
-  if (!license) return fail("Licença não encontrada.", "NOT_FOUND", 404);
-  if (!allowed) return fail("Sem permissão para esta licença.", "FORBIDDEN", 403);
+  const { row, error } = await findLicense(admin, body, "id,reseller_id,created_by");
+  if (error) return fail("Informe 'license_id' ou 'license_key'.", "MISSING_ID", 400);
+  if (!row) return fail("Licença não encontrada.", "NOT_FOUND", 404);
+  if (!canManage(caller, row)) return fail("Sem permissão para esta licença.", "FORBIDDEN", 403);
+  const id = row.id as string;
 
   await admin.from("license_devices").delete().eq("license_id", id);
   await admin.from("license_sessions").delete().eq("license_id", id);
@@ -311,30 +335,30 @@ async function hResetHwid({ admin, caller, body }: Ctx): Promise<Response> {
 }
 
 async function hRevokeLicense({ admin, caller, body }: Ctx): Promise<Response> {
-  const id = str(body.license_id);
-  if (!id) return fail("Informe 'license_id'.", "MISSING_ID", 400);
-  const { license, allowed } = await authorizeLicense(admin, caller, id);
-  if (!license) return fail("Licença não encontrada.", "NOT_FOUND", 404);
-  if (!allowed) return fail("Sem permissão para esta licença.", "FORBIDDEN", 403);
+  const { row, error } = await findLicense(admin, body, "id,reseller_id,created_by");
+  if (error) return fail("Informe 'license_id' ou 'license_key'.", "MISSING_ID", 400);
+  if (!row) return fail("Licença não encontrada.", "NOT_FOUND", 404);
+  if (!canManage(caller, row)) return fail("Sem permissão para esta licença.", "FORBIDDEN", 403);
+  const id = row.id as string;
 
-  const { error } = await admin.from("licenses").update({ status: "revoked" }).eq("id", id);
-  if (error) return fail(error.message, "DB_ERROR", 500);
+  const { error: updErr } = await admin.from("licenses").update({ status: "revoked" }).eq("id", id);
+  if (updErr) return fail(updErr.message, "DB_ERROR", 500);
   await audit(admin, caller.userId, "revoke-license", "license", id);
   return ok({ id, status: "revoked" });
 }
 
 async function hDeleteLicense({ admin, caller, body }: Ctx): Promise<Response> {
-  const id = str(body.license_id);
-  if (!id) return fail("Informe 'license_id'.", "MISSING_ID", 400);
-  const { license, allowed } = await authorizeLicense(admin, caller, id);
-  if (!license) return fail("Licença não encontrada.", "NOT_FOUND", 404);
-  if (!allowed) return fail("Sem permissão para esta licença.", "FORBIDDEN", 403);
-  if (license.status !== "expired" && license.status !== "revoked")
+  const { row, error } = await findLicense(admin, body, "id,reseller_id,created_by,status");
+  if (error) return fail("Informe 'license_id' ou 'license_key'.", "MISSING_ID", 400);
+  if (!row) return fail("Licença não encontrada.", "NOT_FOUND", 404);
+  if (!canManage(caller, row)) return fail("Sem permissão para esta licença.", "FORBIDDEN", 403);
+  const id = row.id as string;
+  if (row.status !== "expired" && row.status !== "revoked")
     return fail("Apenas licenças expiradas ou revogadas podem ser excluídas.", "NOT_DELETABLE", 400);
 
-  const { error } = await admin.from("licenses").delete().eq("id", id);
-  if (error) return fail(error.message, "DB_ERROR", 500);
-  if (license.reseller_id) await recalcUsage(admin, license.reseller_id);
+  const { error: delErr } = await admin.from("licenses").delete().eq("id", id);
+  if (delErr) return fail(delErr.message, "DB_ERROR", 500);
+  if (row.reseller_id) await recalcUsage(admin, row.reseller_id as string);
   await audit(admin, caller.userId, "delete-license", "license", id);
   return ok({ id, deleted: true });
 }
