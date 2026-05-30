@@ -125,6 +125,21 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <AuthInvalidator />
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+        <Toaster richColors position="top-right" theme="dark" />
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+}
+
+function AuthInvalidator() {
+  const { queryClient } = Route.useRouteContext();
   const router = useRouter();
 
   useEffect(() => {
@@ -137,13 +152,5 @@ function RootComponent() {
     return () => subscription.unsubscribe();
   }, [router, queryClient]);
 
-  return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
-        <Toaster richColors position="top-right" theme="dark" />
-      </AuthProvider>
-    </QueryClientProvider>
-  );
+  return null;
 }
