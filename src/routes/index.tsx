@@ -19,6 +19,9 @@ function Index() {
       navigate({ to: "/admin", replace: true });
     } else if (role === "reseller") {
       navigate({ to: "/reseller", replace: true });
+    } else {
+      // Logged in but no role yet → awaiting admin approval.
+      navigate({ to: "/pending", replace: true });
     }
   }, [loading, user, role, navigate]);
 

@@ -10,11 +10,13 @@ import type { Session, User } from "@supabase/supabase-js";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 
 export type AppRole = "admin" | "reseller";
+export type AccountStatus = "pending" | "approved" | "rejected";
 
 interface AuthState {
   session: Session | null;
   user: User | null;
   role: AppRole | null;
+  status: AccountStatus | null;
   loading: boolean;
   configured: boolean;
   refreshRole: () => Promise<void>;
@@ -35,17 +37,31 @@ async function fetchRole(userId: string): Promise<AppRole | null> {
   return null;
 }
 
+async function fetchStatus(userId: string): Promise<AccountStatus | null> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("status")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return (data.status as AccountStatus) ?? null;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
+  const [status, setStatus] = useState<AccountStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadRole = async (uid: string | undefined) => {
     if (!uid) {
       setRole(null);
+      setStatus(null);
       return;
     }
-    setRole(await fetchRole(uid));
+    const [r, s] = await Promise.all([fetchRole(uid), fetchStatus(uid)]);
+    setRole(r);
+    setStatus(s);
   };
 
   useEffect(() => {
@@ -78,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     session,
     user: session?.user ?? null,
     role,
+    status,
     loading,
     configured: isSupabaseConfigured,
     refreshRole: async () => {
@@ -86,6 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut: async () => {
       await supabase.auth.signOut();
       setRole(null);
+      setStatus(null);
     },
   };
 

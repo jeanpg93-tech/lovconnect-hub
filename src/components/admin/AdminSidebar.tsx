@@ -4,6 +4,7 @@ import {
   KeyRound,
   PlusCircle,
   Users,
+  UserCheck,
   Webhook,
   Bell,
   Package,
@@ -17,6 +18,7 @@ import { Button } from "@/components/ui/button";
 
 const NAV = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/admin/approvals", label: "Aprovações", icon: UserCheck },
   { to: "/admin/licenses", label: "Licenças", icon: KeyRound },
   { to: "/admin/create-license", label: "Criar licença", icon: PlusCircle },
   { to: "/admin/resellers", label: "Revendedores", icon: Users },

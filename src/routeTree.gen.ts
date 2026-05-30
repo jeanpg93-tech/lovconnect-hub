@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PendingRouteImport } from './routes/pending'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
@@ -25,7 +26,13 @@ import { Route as AuthenticatedAdminResellersRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminNotificationsRouteImport } from './routes/_authenticated.admin.notifications'
 import { Route as AuthenticatedAdminLicensesRouteImport } from './routes/_authenticated.admin.licenses'
 import { Route as AuthenticatedAdminCreateLicenseRouteImport } from './routes/_authenticated.admin.create-license'
+import { Route as AuthenticatedAdminApprovalsRouteImport } from './routes/_authenticated.admin.approvals'
 
+const PendingRoute = PendingRouteImport.update({
+  id: '/pending',
+  path: '/pending',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -115,12 +122,20 @@ const AuthenticatedAdminCreateLicenseRoute =
     path: '/create-license',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminApprovalsRoute =
+  AuthenticatedAdminApprovalsRouteImport.update({
+    id: '/approvals',
+    path: '/approvals',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/pending': typeof PendingRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/reseller': typeof AuthenticatedResellerRouteWithChildren
+  '/admin/approvals': typeof AuthenticatedAdminApprovalsRoute
   '/admin/create-license': typeof AuthenticatedAdminCreateLicenseRoute
   '/admin/licenses': typeof AuthenticatedAdminLicensesRoute
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
@@ -136,6 +151,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/pending': typeof PendingRoute
+  '/admin/approvals': typeof AuthenticatedAdminApprovalsRoute
   '/admin/create-license': typeof AuthenticatedAdminCreateLicenseRoute
   '/admin/licenses': typeof AuthenticatedAdminLicensesRoute
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
@@ -153,8 +170,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
+  '/pending': typeof PendingRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/reseller': typeof AuthenticatedResellerRouteWithChildren
+  '/_authenticated/admin/approvals': typeof AuthenticatedAdminApprovalsRoute
   '/_authenticated/admin/create-license': typeof AuthenticatedAdminCreateLicenseRoute
   '/_authenticated/admin/licenses': typeof AuthenticatedAdminLicensesRoute
   '/_authenticated/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
@@ -172,8 +191,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/pending'
     | '/admin'
     | '/reseller'
+    | '/admin/approvals'
     | '/admin/create-license'
     | '/admin/licenses'
     | '/admin/notifications'
@@ -189,6 +210,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/pending'
+    | '/admin/approvals'
     | '/admin/create-license'
     | '/admin/licenses'
     | '/admin/notifications'
@@ -205,8 +228,10 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/login'
+    | '/pending'
     | '/_authenticated/admin'
     | '/_authenticated/reseller'
+    | '/_authenticated/admin/approvals'
     | '/_authenticated/admin/create-license'
     | '/_authenticated/admin/licenses'
     | '/_authenticated/admin/notifications'
@@ -224,10 +249,18 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
+  PendingRoute: typeof PendingRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/pending': {
+      id: '/pending'
+      path: '/pending'
+      fullPath: '/pending'
+      preLoaderRoute: typeof PendingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -340,10 +373,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCreateLicenseRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/approvals': {
+      id: '/_authenticated/admin/approvals'
+      path: '/approvals'
+      fullPath: '/admin/approvals'
+      preLoaderRoute: typeof AuthenticatedAdminApprovalsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
   }
 }
 
 interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminApprovalsRoute: typeof AuthenticatedAdminApprovalsRoute
   AuthenticatedAdminCreateLicenseRoute: typeof AuthenticatedAdminCreateLicenseRoute
   AuthenticatedAdminLicensesRoute: typeof AuthenticatedAdminLicensesRoute
   AuthenticatedAdminNotificationsRoute: typeof AuthenticatedAdminNotificationsRoute
@@ -354,6 +395,7 @@ interface AuthenticatedAdminRouteChildren {
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminApprovalsRoute: AuthenticatedAdminApprovalsRoute,
   AuthenticatedAdminCreateLicenseRoute: AuthenticatedAdminCreateLicenseRoute,
   AuthenticatedAdminLicensesRoute: AuthenticatedAdminLicensesRoute,
   AuthenticatedAdminNotificationsRoute: AuthenticatedAdminNotificationsRoute,
@@ -403,6 +445,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
+  PendingRoute: PendingRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
