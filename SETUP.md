@@ -144,8 +144,9 @@ curl -s -X POST \
 ```
 
 
-Endpoints ainda não implementados respondem **501** com
-`{"code":"NOT_IMPLEMENTED"}` — comportamento esperado nesta fase.
+> **Nota (Fase 4):** a `reseller-api` está **live** — os endpoints de revenda e
+> administração abaixo respondem de verdade. O `501 NOT_IMPLEMENTED` continua
+> valendo **apenas** para serviços ainda em stub (ex.: `validate-license`).
 
 ---
 
