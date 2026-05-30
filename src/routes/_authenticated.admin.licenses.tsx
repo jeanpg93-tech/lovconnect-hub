@@ -78,7 +78,7 @@ function LicensesPage() {
       toast.success(`${label} concluído.`);
       void refetch();
     } else {
-      toast.message(edgeUnavailableMessage(result));
+      toast.error(edgeUnavailableMessage(result));
     }
   };
 
