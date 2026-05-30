@@ -20,6 +20,7 @@ import { resolveCaller, type Caller } from "../_shared/auth.ts";
 import {
   generateApiToken,
   generateLicenseKey,
+  generateTrialKey,
   keyPrefix,
   maskKey,
   sha256Hex,
@@ -97,6 +98,43 @@ function num(v: unknown): number {
   const n = typeof v === "number" ? v : Number(v);
   return Number.isFinite(n) ? n : 0;
 }
+function bool(v: unknown): boolean {
+  return v === true || v === "true" || v === 1 || v === "1";
+}
+
+/**
+ * Resolve a license either by `license_id` (UUID) or by `license_key`
+ * (full key — hashed and matched against license_key_hash).
+ * Returns the row id plus the columns the caller asked for.
+ */
+async function findLicense(
+  admin: SupabaseClient,
+  body: Record<string, unknown>,
+  columns: string,
+): Promise<{ row: Record<string, unknown> | null; error: string | null }> {
+  const id = str(body.license_id);
+  const key = str(body.license_key);
+  if (!id && !key) return { row: null, error: "MISSING_ID" };
+
+  let query = admin.from("licenses").select(columns);
+  if (id) {
+    query = query.eq("id", id);
+  } else {
+    const hash = await sha256Hex(key!);
+    query = query.eq("license_key_hash", hash);
+  }
+  const { data } = await query.maybeSingle();
+  return { row: (data as Record<string, unknown>) ?? null, error: null };
+}
+
+/** Admins manage anything; resellers only their own licenses. */
+function canManage(caller: Caller, row: Record<string, unknown>): boolean {
+  return (
+    caller.role === "admin" ||
+    row.reseller_id === caller.userId ||
+    row.created_by === caller.userId
+  );
+}
 
 // ---------------------------------------------------------------------------
 // endpoint handlers
@@ -129,10 +167,12 @@ async function hStatus({ admin, caller }: Ctx): Promise<Response> {
 async function hGenerateTrial({ admin, caller, body }: Ctx): Promise<Response> {
   const clientName = str(body.client_name);
   const clientEmail = str(body.client_email);
-  const trialSeconds = num(body.trial_seconds);
+  // Accept trial_seconds, minutes and seconds (API doc compatibility).
+  const trialSeconds =
+    num(body.trial_seconds) + num(body.minutes) * 60 + num(body.seconds);
   const targetReseller = caller.role === "admin" ? (str(body.reseller_user_id) ?? null) : caller.userId;
 
-  if (trialSeconds <= 0) return fail("Informe a duração do teste em segundos.", "INVALID_TRIAL", 400);
+  if (trialSeconds <= 0) return fail("Informe a duração do teste (trial_seconds, minutes ou seconds).", "INVALID_TRIAL", 400);
 
   if (caller.role === "reseller" || (caller.role === "admin" && targetReseller)) {
     const account = await loadAccount(admin, targetReseller!);
@@ -144,7 +184,7 @@ async function hGenerateTrial({ admin, caller, body }: Ctx): Promise<Response> {
       return fail(`Tempo de teste excede o máximo permitido (${account.trial_max_seconds}s).`, "TRIAL_LIMIT", 400);
   }
 
-  const key = generateLicenseKey();
+  const key = generateTrialKey();
   const hash = await sha256Hex(key);
   const expiresAt = new Date(Date.now() + trialSeconds * 1000).toISOString();
 
@@ -170,21 +210,25 @@ async function hGenerateTrial({ admin, caller, body }: Ctx): Promise<Response> {
   await audit(admin, caller.userId, "generate-trial", "license", lic.id, { trial_seconds: trialSeconds });
 
   // Trial does NOT consume credit.
-  return ok({ license_key: key, masked_key: lic.masked_key, id: lic.id, type: "trial", expires_at: lic.expires_at });
+  return ok({ license_key: key, masked_key: lic.masked_key, id: lic.id, type: "trial", trial_seconds: trialSeconds, expires_at: lic.expires_at });
 }
 
 async function hGenerateLicense({ admin, caller, body }: Ctx): Promise<Response> {
-  const type = body.type === "lifetime" ? "lifetime" : "normal";
+  // Accept both type="lifetime" and lifetime=true.
+  const isLifetime = body.type === "lifetime" || bool(body.lifetime);
+  const type = isLifetime ? "lifetime" : "normal";
   const clientName = str(body.client_name);
   const clientEmail = str(body.client_email);
   const notes = str(body.notes);
   const targetReseller = caller.role === "admin" ? (str(body.reseller_user_id) ?? null) : caller.userId;
 
+  // Accept duration object AND top-level days/hours/minutes/seconds.
   const dur = (body.duration ?? {}) as Record<string, unknown>;
   const days = num(body.days) || num(dur.days);
-  const hours = num(dur.hours);
-  const minutes = num(dur.minutes);
-  const totalMs = ((days * 24 + hours) * 60 + minutes) * 60 * 1000;
+  const hours = num(body.hours) || num(dur.hours);
+  const minutes = num(body.minutes) || num(dur.minutes);
+  const seconds = num(body.seconds) || num(dur.seconds);
+  const totalMs = (((days * 24 + hours) * 60 + minutes) * 60 + seconds) * 1000;
   const totalDays = totalMs / 86_400_000;
 
   if (type === "normal" && totalMs <= 0)
@@ -234,40 +278,64 @@ async function hGenerateLicense({ admin, caller, body }: Ctx): Promise<Response>
   if (error) return fail(`Falha ao gerar licença: ${error.message}`, "DB_ERROR", 500);
 
   if (targetReseller) await recalcUsage(admin, targetReseller);
-  await audit(admin, caller.userId, "generate-license", "license", lic.id, { type, days, hours, minutes });
+  await audit(admin, caller.userId, "generate-license", "license", lic.id, { type, days, hours, minutes, seconds });
 
   return ok({ license_key: key, masked_key: lic.masked_key, id: lic.id, type: lic.type, expires_at: lic.expires_at });
 }
 
-async function hListLicenses({ admin, caller }: Ctx): Promise<Response> {
+async function hListLicenses({ admin, caller, body }: Ctx): Promise<Response> {
+  const statusFilter = (str(body.status) ?? "all").toLowerCase();
+  const search = str(body.search) ?? str(body.q);
+  const page = Math.max(1, Math.floor(num(body.page)) || 1);
+  const perPageRaw = Math.floor(num(body.per_page)) || 20;
+  const perPage = Math.min(200, Math.max(1, perPageRaw));
+  const from = (page - 1) * perPage;
+  const to = from + perPage - 1;
+
   let q = admin
     .from("licenses")
-    .select("id,masked_key,client_name,client_email,type,status,expires_at,created_at")
+    .select(
+      "id,masked_key,client_name,client_email,type,status,expires_at,created_at",
+      { count: "exact" },
+    )
     .order("created_at", { ascending: false });
-  if (caller.role !== "admin") q = q.eq("reseller_id", caller.userId);
-  const { data, error } = await q;
-  if (error) return fail(error.message, "DB_ERROR", 500);
-  return ok({ licenses: data ?? [] });
-}
 
-async function authorizeLicense(admin: SupabaseClient, caller: Caller, licenseId: string) {
-  const { data } = await admin
-    .from("licenses")
-    .select("id,reseller_id,created_by,status,type")
-    .eq("id", licenseId)
-    .maybeSingle();
-  if (!data) return { license: null, allowed: false };
-  const allowed =
-    caller.role === "admin" || data.reseller_id === caller.userId || data.created_by === caller.userId;
-  return { license: data, allowed };
+  if (caller.role !== "admin") q = q.eq("reseller_id", caller.userId);
+
+  // status: all | active | trial | expired | revoked
+  if (statusFilter === "trial") {
+    q = q.eq("type", "trial");
+  } else if (["active", "expired", "revoked"].includes(statusFilter)) {
+    q = q.eq("status", statusFilter);
+  }
+
+  if (search) {
+    const term = search.replace(/[%,()*.]/g, " ").trim();
+    q = q.or(
+      `masked_key.ilike.%${term}%,client_name.ilike.%${term}%,client_email.ilike.%${term}%`,
+    );
+  }
+
+  q = q.range(from, to);
+
+  const { data, error, count } = await q;
+  if (error) return fail(error.message, "DB_ERROR", 500);
+  const total = count ?? 0;
+  return ok({
+    licenses: data ?? [],
+    page,
+    per_page: perPage,
+    total,
+    total_pages: Math.max(1, Math.ceil(total / perPage)),
+  });
 }
 
 async function hResetHwid({ admin, caller, body }: Ctx): Promise<Response> {
-  const id = str(body.license_id);
-  if (!id) return fail("Informe 'license_id'.", "MISSING_ID", 400);
-  const { license, allowed } = await authorizeLicense(admin, caller, id);
-  if (!license) return fail("Licença não encontrada.", "NOT_FOUND", 404);
-  if (!allowed) return fail("Sem permissão para esta licença.", "FORBIDDEN", 403);
+  const { row, error } = await findLicense(admin, body, "id,reseller_id,created_by");
+  if (error) return fail("Informe 'license_id' ou 'license_key'.", "MISSING_ID", 400);
+  if (!row) return fail("Licença não encontrada.", "NOT_FOUND", 404);
+  if (!canManage(caller, row)) return fail("Sem permissão para esta licença.", "FORBIDDEN", 403);
+  const id = row.id as string;
 
   await admin.from("license_devices").delete().eq("license_id", id);
   await admin.from("license_sessions").delete().eq("license_id", id);
@@ -276,42 +344,54 @@ async function hResetHwid({ admin, caller, body }: Ctx): Promise<Response> {
 }
 
 async function hRevokeLicense({ admin, caller, body }: Ctx): Promise<Response> {
-  const id = str(body.license_id);
-  if (!id) return fail("Informe 'license_id'.", "MISSING_ID", 400);
-  const { license, allowed } = await authorizeLicense(admin, caller, id);
-  if (!license) return fail("Licença não encontrada.", "NOT_FOUND", 404);
-  if (!allowed) return fail("Sem permissão para esta licença.", "FORBIDDEN", 403);
+  const { row, error } = await findLicense(admin, body, "id,reseller_id,created_by");
+  if (error) return fail("Informe 'license_id' ou 'license_key'.", "MISSING_ID", 400);
+  if (!row) return fail("Licença não encontrada.", "NOT_FOUND", 404);
+  if (!canManage(caller, row)) return fail("Sem permissão para esta licença.", "FORBIDDEN", 403);
+  const id = row.id as string;
 
-  const { error } = await admin.from("licenses").update({ status: "revoked" }).eq("id", id);
-  if (error) return fail(error.message, "DB_ERROR", 500);
+  const { error: updErr } = await admin.from("licenses").update({ status: "revoked" }).eq("id", id);
+  if (updErr) return fail(updErr.message, "DB_ERROR", 500);
   await audit(admin, caller.userId, "revoke-license", "license", id);
   return ok({ id, status: "revoked" });
 }
 
 async function hDeleteLicense({ admin, caller, body }: Ctx): Promise<Response> {
-  const id = str(body.license_id);
-  if (!id) return fail("Informe 'license_id'.", "MISSING_ID", 400);
-  const { license, allowed } = await authorizeLicense(admin, caller, id);
-  if (!license) return fail("Licença não encontrada.", "NOT_FOUND", 404);
-  if (!allowed) return fail("Sem permissão para esta licença.", "FORBIDDEN", 403);
-  if (license.status !== "expired" && license.status !== "revoked")
+  const { row, error } = await findLicense(admin, body, "id,reseller_id,created_by,status");
+  if (error) return fail("Informe 'license_id' ou 'license_key'.", "MISSING_ID", 400);
+  if (!row) return fail("Licença não encontrada.", "NOT_FOUND", 404);
+  if (!canManage(caller, row)) return fail("Sem permissão para esta licença.", "FORBIDDEN", 403);
+  const id = row.id as string;
+  if (row.status !== "expired" && row.status !== "revoked")
     return fail("Apenas licenças expiradas ou revogadas podem ser excluídas.", "NOT_DELETABLE", 400);
 
-  const { error } = await admin.from("licenses").delete().eq("id", id);
-  if (error) return fail(error.message, "DB_ERROR", 500);
-  if (license.reseller_id) await recalcUsage(admin, license.reseller_id);
+  const { error: delErr } = await admin.from("licenses").delete().eq("id", id);
+  if (delErr) return fail(delErr.message, "DB_ERROR", 500);
+  if (row.reseller_id) await recalcUsage(admin, row.reseller_id as string);
   await audit(admin, caller.userId, "delete-license", "license", id);
   return ok({ id, deleted: true });
 }
 
 async function hCreateToken({ admin, caller, body }: Ctx): Promise<Response> {
   const name = str(body.name);
+
+  // Admin may create a token for a specific reseller. Others always for self.
+  const requestedUser = str(body.user_id) ?? str(body.reseller_user_id);
+  let targetUser = caller.userId;
+  if (requestedUser && requestedUser !== caller.userId) {
+    if (caller.role !== "admin" || caller.viaToken)
+      return fail("Apenas administradores podem criar tokens para outros usuários.", "ADMIN_ONLY", 403);
+    const account = await loadAccount(admin, requestedUser);
+    if (!account) return fail("Revenda alvo não encontrada.", "NO_RESELLER_ACCOUNT", 404);
+    targetUser = requestedUser;
+  }
+
   const token = generateApiToken();
   const hash = await sha256Hex(token);
   const { data, error } = await admin
     .from("api_tokens")
     .insert({
-      user_id: caller.userId,
+      user_id: targetUser,
       name,
       token_prefix: keyPrefix(token, 12),
       token_hash: hash,
@@ -319,8 +399,8 @@ async function hCreateToken({ admin, caller, body }: Ctx): Promise<Response> {
     .select("id,name,token_prefix,created_at")
     .single();
   if (error) return fail(`Falha ao criar token: ${error.message}`, "DB_ERROR", 500);
-  await audit(admin, caller.userId, "create-token", "api_token", data.id, { name });
-  return ok({ token, id: data.id, name: data.name, token_prefix: data.token_prefix });
+  await audit(admin, caller.userId, "create-token", "api_token", data.id, { name, target_user: targetUser });
+  return ok({ token, id: data.id, name: data.name, token_prefix: data.token_prefix, user_id: targetUser });
 }
 
 async function hListTokens({ admin, caller }: Ctx): Promise<Response> {
