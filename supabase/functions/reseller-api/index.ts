@@ -374,12 +374,24 @@ async function hDeleteLicense({ admin, caller, body }: Ctx): Promise<Response> {
 
 async function hCreateToken({ admin, caller, body }: Ctx): Promise<Response> {
   const name = str(body.name);
+
+  // Admin may create a token for a specific reseller. Others always for self.
+  const requestedUser = str(body.user_id) ?? str(body.reseller_user_id);
+  let targetUser = caller.userId;
+  if (requestedUser && requestedUser !== caller.userId) {
+    if (caller.role !== "admin" || caller.viaToken)
+      return fail("Apenas administradores podem criar tokens para outros usuários.", "ADMIN_ONLY", 403);
+    const account = await loadAccount(admin, requestedUser);
+    if (!account) return fail("Revenda alvo não encontrada.", "NO_RESELLER_ACCOUNT", 404);
+    targetUser = requestedUser;
+  }
+
   const token = generateApiToken();
   const hash = await sha256Hex(token);
   const { data, error } = await admin
     .from("api_tokens")
     .insert({
-      user_id: caller.userId,
+      user_id: targetUser,
       name,
       token_prefix: keyPrefix(token, 12),
       token_hash: hash,
@@ -387,8 +399,8 @@ async function hCreateToken({ admin, caller, body }: Ctx): Promise<Response> {
     .select("id,name,token_prefix,created_at")
     .single();
   if (error) return fail(`Falha ao criar token: ${error.message}`, "DB_ERROR", 500);
-  await audit(admin, caller.userId, "create-token", "api_token", data.id, { name });
-  return ok({ token, id: data.id, name: data.name, token_prefix: data.token_prefix });
+  await audit(admin, caller.userId, "create-token", "api_token", data.id, { name, target_user: targetUser });
+  return ok({ token, id: data.id, name: data.name, token_prefix: data.token_prefix, user_id: targetUser });
 }
 
 async function hListTokens({ admin, caller }: Ctx): Promise<Response> {
