@@ -158,10 +158,12 @@ async function hStatus({ admin, caller }: Ctx): Promise<Response> {
 async function hGenerateTrial({ admin, caller, body }: Ctx): Promise<Response> {
   const clientName = str(body.client_name);
   const clientEmail = str(body.client_email);
-  const trialSeconds = num(body.trial_seconds);
+  // Accept trial_seconds, minutes and seconds (API doc compatibility).
+  const trialSeconds =
+    num(body.trial_seconds) + num(body.minutes) * 60 + num(body.seconds);
   const targetReseller = caller.role === "admin" ? (str(body.reseller_user_id) ?? null) : caller.userId;
 
-  if (trialSeconds <= 0) return fail("Informe a duração do teste em segundos.", "INVALID_TRIAL", 400);
+  if (trialSeconds <= 0) return fail("Informe a duração do teste (trial_seconds, minutes ou seconds).", "INVALID_TRIAL", 400);
 
   if (caller.role === "reseller" || (caller.role === "admin" && targetReseller)) {
     const account = await loadAccount(admin, targetReseller!);
@@ -173,7 +175,7 @@ async function hGenerateTrial({ admin, caller, body }: Ctx): Promise<Response> {
       return fail(`Tempo de teste excede o máximo permitido (${account.trial_max_seconds}s).`, "TRIAL_LIMIT", 400);
   }
 
-  const key = generateLicenseKey();
+  const key = generateTrialKey();
   const hash = await sha256Hex(key);
   const expiresAt = new Date(Date.now() + trialSeconds * 1000).toISOString();
 
@@ -199,7 +201,7 @@ async function hGenerateTrial({ admin, caller, body }: Ctx): Promise<Response> {
   await audit(admin, caller.userId, "generate-trial", "license", lic.id, { trial_seconds: trialSeconds });
 
   // Trial does NOT consume credit.
-  return ok({ license_key: key, masked_key: lic.masked_key, id: lic.id, type: "trial", expires_at: lic.expires_at });
+  return ok({ license_key: key, masked_key: lic.masked_key, id: lic.id, type: "trial", trial_seconds: trialSeconds, expires_at: lic.expires_at });
 }
 
 async function hGenerateLicense({ admin, caller, body }: Ctx): Promise<Response> {
