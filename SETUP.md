@@ -114,7 +114,7 @@ Substitua `SEU-PROJETO` pela sua URL.
 
 ```bash
 curl -s https://SEU-PROJETO.supabase.co/functions/v1/reseller-api/health
-# => {"ok":true,"data":{"service":"reseller-api","phase":"stub",...},"error":null,"code":null}
+# => {"ok":true,"data":{"service":"reseller-api","phase":"live","version":"1.0.0",...},"error":null,"code":null}
 
 curl -s https://SEU-PROJETO.supabase.co/functions/v1/validate-license/health
 # => {"ok":true,"data":{"service":"validate-license","phase":"stub",...}}
