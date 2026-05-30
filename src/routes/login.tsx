@@ -40,7 +40,7 @@ function LoginPage() {
     setSubmitting(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -49,13 +49,25 @@ function LoginPage() {
           },
         });
         if (error) throw error;
-        toast.success("Conta criada! Se a confirmação de email estiver ativa, verifique sua caixa.");
+        // When email confirmation is enabled, no session is returned. Don't
+        // redirect — tell the user to confirm their email first.
+        if (!data.session) {
+          toast.success(
+            "Conta criada! Confirme seu email pelo link enviado antes de entrar.",
+            { duration: 8000 },
+          );
+          setMode("login");
+          setPassword("");
+          return;
+        }
+        toast.success("Conta criada com sucesso!");
+        navigate({ to: "/", replace: true });
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Bem-vindo de volta!");
+        navigate({ to: "/", replace: true });
       }
-      navigate({ to: "/", replace: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha na autenticação.");
     } finally {
