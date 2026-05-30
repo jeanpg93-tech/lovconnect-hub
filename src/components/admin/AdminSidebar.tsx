@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 const NAV = [
-  { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { to: "/admin/licenses", label: "Licenças", icon: KeyRound },
   { to: "/admin/create-license", label: "Criar licença", icon: PlusCircle },
   { to: "/admin/resellers", label: "Revendedores", icon: Users },
@@ -49,9 +49,8 @@ export function AdminSidebar() {
 
       <nav className="flex-1 space-y-1 px-3 py-2">
         {NAV.map((item) => {
-          const active = item.exact
-            ? pathname === item.to
-            : pathname.startsWith(item.to);
+          const active =
+            item.to === "/admin" ? pathname === item.to : pathname.startsWith(item.to);
           const Icon = item.icon;
           return (
             <Link
