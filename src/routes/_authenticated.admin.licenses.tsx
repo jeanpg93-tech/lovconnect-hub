@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Search, RotateCcw, Ban, Trash2 } from "lucide-react";
 
-import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
+import { isSupabaseConfigured } from "@/integrations/supabase/client";
 import { invokeEdge, edgeUnavailableMessage } from "@/lib/edge";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/admin/PageHeader";
@@ -49,15 +49,12 @@ function LicensesPage() {
   const [status, setStatus] = useState("all");
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["licenses"],
+    queryKey: ["admin-licenses"],
     enabled: isSupabaseConfigured,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("licenses")
-        .select("id,masked_key,client_name,client_email,type,status,expires_at,created_at")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as License[];
+      const result = await invokeEdge<{ licenses: License[] }>("reseller-api", "list-licenses");
+      if (!result.ok) throw new Error(edgeUnavailableMessage(result));
+      return result.data?.licenses ?? [];
     },
   });
 
