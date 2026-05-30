@@ -23,10 +23,20 @@ export function randomString(length: number, alphabet = LICENSE_ALPHABET): strin
   return out;
 }
 
-/** License key like: LIC-XXXXX-XXXXX-XXXXX-XXXXX */
-export function generateLicenseKey(): string {
+/** Four 5-char groups, e.g. XXXXX-XXXXX-XXXXX-XXXXX */
+function keyGroups(): string {
   const group = () => randomString(5, LICENSE_ALPHABET);
-  return `LIC-${group()}-${group()}-${group()}-${group()}`;
+  return `${group()}-${group()}-${group()}-${group()}`;
+}
+
+/** Normal / lifetime license key, e.g. LC-XXXXX-XXXXX-XXXXX-XXXXX */
+export function generateLicenseKey(): string {
+  return `LC-${keyGroups()}`;
+}
+
+/** Trial license key, e.g. TRIAL-XXXXX-XXXXX-XXXXX-XXXXX */
+export function generateTrialKey(): string {
+  return `TRIAL-${keyGroups()}`;
 }
 
 /** API token like: rsl_<40 base62 chars> */
