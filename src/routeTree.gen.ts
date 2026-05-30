@@ -14,7 +14,9 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedResellerRouteImport } from './routes/_authenticated.reseller'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
+import { Route as AuthenticatedResellerIndexRouteImport } from './routes/_authenticated.reseller.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
+import { Route as AuthenticatedResellerLicensesRouteImport } from './routes/_authenticated.reseller.licenses'
 import { Route as AuthenticatedAdminVersionsRouteImport } from './routes/_authenticated.admin.versions'
 import { Route as AuthenticatedAdminTokensRouteImport } from './routes/_authenticated.admin.tokens'
 import { Route as AuthenticatedAdminResellersRouteImport } from './routes/_authenticated.admin.resellers'
@@ -46,11 +48,23 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedResellerIndexRoute =
+  AuthenticatedResellerIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedResellerRoute,
+  } as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedResellerLicensesRoute =
+  AuthenticatedResellerLicensesRouteImport.update({
+    id: '/licenses',
+    path: '/licenses',
+    getParentRoute: () => AuthenticatedResellerRoute,
+  } as any)
 const AuthenticatedAdminVersionsRoute =
   AuthenticatedAdminVersionsRouteImport.update({
     id: '/versions',
@@ -92,26 +106,29 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
-  '/reseller': typeof AuthenticatedResellerRoute
+  '/reseller': typeof AuthenticatedResellerRouteWithChildren
   '/admin/create-license': typeof AuthenticatedAdminCreateLicenseRoute
   '/admin/licenses': typeof AuthenticatedAdminLicensesRoute
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/resellers': typeof AuthenticatedAdminResellersRoute
   '/admin/tokens': typeof AuthenticatedAdminTokensRoute
   '/admin/versions': typeof AuthenticatedAdminVersionsRoute
+  '/reseller/licenses': typeof AuthenticatedResellerLicensesRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/reseller/': typeof AuthenticatedResellerIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/reseller': typeof AuthenticatedResellerRoute
   '/admin/create-license': typeof AuthenticatedAdminCreateLicenseRoute
   '/admin/licenses': typeof AuthenticatedAdminLicensesRoute
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/resellers': typeof AuthenticatedAdminResellersRoute
   '/admin/tokens': typeof AuthenticatedAdminTokensRoute
   '/admin/versions': typeof AuthenticatedAdminVersionsRoute
+  '/reseller/licenses': typeof AuthenticatedResellerLicensesRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/reseller': typeof AuthenticatedResellerIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -119,14 +136,16 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
-  '/_authenticated/reseller': typeof AuthenticatedResellerRoute
+  '/_authenticated/reseller': typeof AuthenticatedResellerRouteWithChildren
   '/_authenticated/admin/create-license': typeof AuthenticatedAdminCreateLicenseRoute
   '/_authenticated/admin/licenses': typeof AuthenticatedAdminLicensesRoute
   '/_authenticated/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/_authenticated/admin/resellers': typeof AuthenticatedAdminResellersRoute
   '/_authenticated/admin/tokens': typeof AuthenticatedAdminTokensRoute
   '/_authenticated/admin/versions': typeof AuthenticatedAdminVersionsRoute
+  '/_authenticated/reseller/licenses': typeof AuthenticatedResellerLicensesRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/reseller/': typeof AuthenticatedResellerIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -141,19 +160,22 @@ export interface FileRouteTypes {
     | '/admin/resellers'
     | '/admin/tokens'
     | '/admin/versions'
+    | '/reseller/licenses'
     | '/admin/'
+    | '/reseller/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
-    | '/reseller'
     | '/admin/create-license'
     | '/admin/licenses'
     | '/admin/notifications'
     | '/admin/resellers'
     | '/admin/tokens'
     | '/admin/versions'
+    | '/reseller/licenses'
     | '/admin'
+    | '/reseller'
   id:
     | '__root__'
     | '/'
@@ -167,7 +189,9 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/resellers'
     | '/_authenticated/admin/tokens'
     | '/_authenticated/admin/versions'
+    | '/_authenticated/reseller/licenses'
     | '/_authenticated/admin/'
+    | '/_authenticated/reseller/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -213,12 +237,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/reseller/': {
+      id: '/_authenticated/reseller/'
+      path: '/'
+      fullPath: '/reseller/'
+      preLoaderRoute: typeof AuthenticatedResellerIndexRouteImport
+      parentRoute: typeof AuthenticatedResellerRoute
+    }
     '/_authenticated/admin/': {
       id: '/_authenticated/admin/'
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/reseller/licenses': {
+      id: '/_authenticated/reseller/licenses'
+      path: '/licenses'
+      fullPath: '/reseller/licenses'
+      preLoaderRoute: typeof AuthenticatedResellerLicensesRouteImport
+      parentRoute: typeof AuthenticatedResellerRoute
     }
     '/_authenticated/admin/versions': {
       id: '/_authenticated/admin/versions'
@@ -288,14 +326,29 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
 const AuthenticatedAdminRouteWithChildren =
   AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
 
+interface AuthenticatedResellerRouteChildren {
+  AuthenticatedResellerLicensesRoute: typeof AuthenticatedResellerLicensesRoute
+  AuthenticatedResellerIndexRoute: typeof AuthenticatedResellerIndexRoute
+}
+
+const AuthenticatedResellerRouteChildren: AuthenticatedResellerRouteChildren = {
+  AuthenticatedResellerLicensesRoute: AuthenticatedResellerLicensesRoute,
+  AuthenticatedResellerIndexRoute: AuthenticatedResellerIndexRoute,
+}
+
+const AuthenticatedResellerRouteWithChildren =
+  AuthenticatedResellerRoute._addFileChildren(
+    AuthenticatedResellerRouteChildren,
+  )
+
 interface AuthenticatedRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
-  AuthenticatedResellerRoute: typeof AuthenticatedResellerRoute
+  AuthenticatedResellerRoute: typeof AuthenticatedResellerRouteWithChildren
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
-  AuthenticatedResellerRoute: AuthenticatedResellerRoute,
+  AuthenticatedResellerRoute: AuthenticatedResellerRouteWithChildren,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
