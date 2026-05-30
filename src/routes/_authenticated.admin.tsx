@@ -1,4 +1,5 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 
 import { useAuth } from "@/lib/auth";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
@@ -10,6 +11,12 @@ export const Route = createFileRoute("/_authenticated/admin")({
 
 function AdminLayout() {
   const { role, loading } = useAuth();
+  const navigate = useNavigate();
+
+  // Resellers have their own panel.
+  useEffect(() => {
+    if (!loading && role === "reseller") navigate({ to: "/reseller", replace: true });
+  }, [loading, role, navigate]);
 
   if (loading) {
     return (
@@ -25,7 +32,7 @@ function AdminLayout() {
         <div className="max-w-md space-y-2 text-center">
           <h1 className="text-xl font-semibold text-foreground">Acesso restrito</h1>
           <p className="text-sm text-muted-foreground">
-            Esta área é exclusiva para administradores. O painel de revendedor chega na próxima fase.
+            Esta área é exclusiva para administradores.
           </p>
         </div>
       </div>
