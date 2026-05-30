@@ -98,6 +98,34 @@ function num(v: unknown): number {
   const n = typeof v === "number" ? v : Number(v);
   return Number.isFinite(n) ? n : 0;
 }
+function bool(v: unknown): boolean {
+  return v === true || v === "true" || v === 1 || v === "1";
+}
+
+/**
+ * Resolve a license either by `license_id` (UUID) or by `license_key`
+ * (full key — hashed and matched against license_key_hash).
+ * Returns the row id plus the columns the caller asked for.
+ */
+async function findLicense(
+  admin: SupabaseClient,
+  body: Record<string, unknown>,
+  columns: string,
+): Promise<{ row: Record<string, unknown> | null; error: string | null }> {
+  const id = str(body.license_id);
+  const key = str(body.license_key);
+  if (!id && !key) return { row: null, error: "MISSING_ID" };
+
+  let query = admin.from("licenses").select(columns);
+  if (id) {
+    query = query.eq("id", id);
+  } else {
+    const hash = await sha256Hex(key!);
+    query = query.eq("license_key_hash", hash);
+  }
+  const { data } = await query.maybeSingle();
+  return { row: (data as Record<string, unknown>) ?? null, error: null };
+}
 
 // ---------------------------------------------------------------------------
 // endpoint handlers
