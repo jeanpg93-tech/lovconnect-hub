@@ -310,7 +310,7 @@ async function hListLicenses({ admin, caller, body }: Ctx): Promise<Response> {
   }
 
   if (search) {
-    const term = search.replace(/[%,]/g, " ").trim();
+    const term = search.replace(/[%,()*.]/g, " ").trim();
     q = q.or(
       `masked_key.ilike.%${term}%,client_name.ilike.%${term}%,client_email.ilike.%${term}%`,
     );
