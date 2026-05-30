@@ -14,6 +14,8 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
+import { Route as AuthenticatedAdminLicensesRouteImport } from './routes/_authenticated.admin.licenses'
+import { Route as AuthenticatedAdminCreateLicenseRouteImport } from './routes/_authenticated.admin.create-license'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -39,16 +41,32 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminLicensesRoute =
+  AuthenticatedAdminLicensesRouteImport.update({
+    id: '/licenses',
+    path: '/licenses',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminCreateLicenseRoute =
+  AuthenticatedAdminCreateLicenseRouteImport.update({
+    id: '/create-license',
+    path: '/create-license',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/admin/create-license': typeof AuthenticatedAdminCreateLicenseRoute
+  '/admin/licenses': typeof AuthenticatedAdminLicensesRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/admin/create-license': typeof AuthenticatedAdminCreateLicenseRoute
+  '/admin/licenses': typeof AuthenticatedAdminLicensesRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesById {
@@ -57,19 +75,29 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/_authenticated/admin/create-license': typeof AuthenticatedAdminCreateLicenseRoute
+  '/_authenticated/admin/licenses': typeof AuthenticatedAdminLicensesRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/admin' | '/admin/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/admin'
+    | '/admin/create-license'
+    | '/admin/licenses'
+    | '/admin/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/admin'
+  to: '/' | '/login' | '/admin/create-license' | '/admin/licenses' | '/admin'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/login'
     | '/_authenticated/admin'
+    | '/_authenticated/admin/create-license'
+    | '/_authenticated/admin/licenses'
     | '/_authenticated/admin/'
   fileRoutesById: FileRoutesById
 }
@@ -116,14 +144,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/licenses': {
+      id: '/_authenticated/admin/licenses'
+      path: '/licenses'
+      fullPath: '/admin/licenses'
+      preLoaderRoute: typeof AuthenticatedAdminLicensesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/create-license': {
+      id: '/_authenticated/admin/create-license'
+      path: '/create-license'
+      fullPath: '/admin/create-license'
+      preLoaderRoute: typeof AuthenticatedAdminCreateLicenseRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
   }
 }
 
 interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminCreateLicenseRoute: typeof AuthenticatedAdminCreateLicenseRoute
+  AuthenticatedAdminLicensesRoute: typeof AuthenticatedAdminLicensesRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminCreateLicenseRoute: AuthenticatedAdminCreateLicenseRoute,
+  AuthenticatedAdminLicensesRoute: AuthenticatedAdminLicensesRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
 }
 
