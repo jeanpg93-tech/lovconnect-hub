@@ -28,7 +28,7 @@ function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) navigate({ to: "/admin", replace: true });
+    if (!loading && user) navigate({ to: "/", replace: true });
   }, [loading, user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -55,7 +55,7 @@ function LoginPage() {
         if (error) throw error;
         toast.success("Bem-vindo de volta!");
       }
-      navigate({ to: "/admin", replace: true });
+      navigate({ to: "/", replace: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha na autenticação.");
     } finally {
