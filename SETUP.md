@@ -135,10 +135,14 @@ curl -i -X OPTIONS \
 ```bash
 curl -s -X POST \
   -H "Content-Type: application/json" \
-  -d '{"license_key":"LC-XXXX","hwid":"device-123"}' \
+  -d '{"license_key":"LC-XXXX","device_id":"device-123","session_id":null,"heartbeat":true}' \
   https://SEU-PROJETO.supabase.co/functions/v1/validate-license
-# => {"ok":true,"code":"STUB_RESPONSE","data":{"phase":"stub","valid":false,...}}
+# Resposta TOP-LEVEL compatível com a extensão (data.valid no topo):
+# => {"valid":false,"message":"Validação real disponível na próxima fase.",
+#     "reason":"stub","session_id":null,"user_name":null,"expires_at":null,
+#     "activated_at":null,"status":"stub","lifetime":false,"online_count":0,"phase":"stub"}
 ```
+
 
 Endpoints ainda não implementados respondem **501** com
 `{"code":"NOT_IMPLEMENTED"}` — comportamento esperado nesta fase.
