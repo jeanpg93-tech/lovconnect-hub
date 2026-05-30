@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 
-import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
+import { isSupabaseConfigured } from "@/integrations/supabase/client";
+import { invokeEdge, edgeUnavailableMessage } from "@/lib/edge";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/admin/PageHeader";
@@ -43,13 +44,9 @@ function ResellerLicensesPage() {
     queryKey: ["reseller-licenses", user?.id],
     enabled: isSupabaseConfigured && Boolean(user?.id),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("licenses")
-        .select("id,masked_key,client_name,client_email,type,status,expires_at,created_at")
-        .eq("reseller_id", user!.id)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as License[];
+      const result = await invokeEdge<{ licenses: License[] }>("reseller-api", "list-licenses");
+      if (!result.ok) throw new Error(edgeUnavailableMessage(result));
+      return result.data?.licenses ?? [];
     },
   });
 

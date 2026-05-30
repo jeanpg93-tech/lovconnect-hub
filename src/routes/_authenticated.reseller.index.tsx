@@ -9,7 +9,8 @@ import {
   Infinity as InfinityIcon,
 } from "lucide-react";
 
-import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
+import { isSupabaseConfigured } from "@/integrations/supabase/client";
+import { invokeEdge, edgeUnavailableMessage } from "@/lib/edge";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/admin/PageHeader";
@@ -21,10 +22,12 @@ export const Route = createFileRoute("/_authenticated/reseller/")({
   component: ResellerDashboard,
 });
 
-interface ResellerAccount {
+interface StatusResponse {
+  role: string;
   company_name: string | null;
   max_licenses: number;
   used_licenses: number;
+  remaining: number;
   allow_lifetime: boolean;
   trial_max_seconds: number;
   normal_max_days: number;
@@ -32,55 +35,35 @@ interface ResellerAccount {
   blocked: boolean;
 }
 
-interface LicenseRow {
-  status: string;
-  type: string;
-}
-
 function ResellerDashboard() {
   const { user } = useAuth();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["reseller-dashboard", user?.id],
+    queryKey: ["reseller-status", user?.id],
     enabled: isSupabaseConfigured && Boolean(user?.id),
     queryFn: async () => {
-      const [{ data: account }, { data: licenses }] = await Promise.all([
-        supabase
-          .from("reseller_accounts")
-          .select(
-            "company_name,max_licenses,used_licenses,allow_lifetime,trial_max_seconds,normal_max_days,valid_until,blocked",
-          )
-          .eq("user_id", user!.id)
-          .maybeSingle(),
-        supabase.from("licenses").select("status,type").eq("reseller_id", user!.id),
-      ]);
-      return {
-        account: (account ?? null) as ResellerAccount | null,
-        licenses: (licenses ?? []) as LicenseRow[],
-      };
+      const result = await invokeEdge<StatusResponse>("reseller-api", "status");
+      if (!result.ok) {
+        return {
+          account: null as StatusResponse | null,
+          error: result.code === "NO_RESELLER_ACCOUNT" ? null : edgeUnavailableMessage(result),
+        };
+      }
+      return { account: result.data, error: null };
     },
   });
 
   const account = data?.account ?? null;
-  const licenses = data?.licenses ?? [];
-  const used = account?.used_licenses ?? licenses.length;
+  const used = account?.used_licenses ?? 0;
   const max = account?.max_licenses ?? 0;
-  const remaining = Math.max(0, max - used);
+  const remaining = account?.remaining ?? Math.max(0, max - used);
   const usagePct = max > 0 ? Math.min(100, Math.round((used / max) * 100)) : 0;
 
   const cards = [
     { label: "Licenças usadas", value: used, icon: KeyRound },
     { label: "Disponíveis", value: remaining, icon: Gauge },
-    {
-      label: "Ativas",
-      value: licenses.filter((l) => l.status === "active").length,
-      icon: CheckCircle2,
-    },
-    {
-      label: "Testes",
-      value: licenses.filter((l) => l.status === "trial" || l.type === "trial").length,
-      icon: Timer,
-    },
+    { label: "Limite total", value: max, icon: CheckCircle2 },
+    { label: "Tempo máx. teste (s)", value: account?.trial_max_seconds ?? 0, icon: Timer },
   ];
 
   if (!isLoading && !account) {
@@ -91,7 +74,8 @@ function ResellerDashboard() {
           <CardContent className="space-y-2 p-6 text-center">
             <p className="text-sm font-medium text-foreground">Conta de revenda ainda não configurada</p>
             <p className="text-sm text-muted-foreground">
-              Um administrador precisa criar e liberar sua conta de revenda com limites de licenças.
+              {data?.error ??
+                "Um administrador precisa criar e liberar sua conta de revenda com limites de licenças."}
             </p>
           </CardContent>
         </Card>
