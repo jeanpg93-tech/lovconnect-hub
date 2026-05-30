@@ -200,11 +200,17 @@ Resposta padrão: `{"ok":true,"data":{...},"error":null,"code":null}` ou
   `license_id` **ou** `license_key` (a chave é hasheada e localizada por
   `license_key_hash`). `delete-license` só remove licenças `expired`/`revoked`.
 
-- **`/create-token`** — cria token `rsl_`. Admin pode informar
+- **`/create-token`** — **ação de painel (JWT) apenas**. Um token de API
+  **não** pode criar outro token: chamadas via `x-api-token` retornam **403**
+  com `code:"TOKEN_CANNOT_CREATE_TOKEN"`. Cria token `rsl_`. Admin pode informar
   `user_id`/`reseller_user_id` para criar token de um revendedor específico;
   sem isso, cria para o próprio usuário logado.
 
-- **`/list-tokens`**, **`/revoke-token`** — lista/revoga tokens (`token_id`).
+- **`/list-tokens`** — lista tokens. Aceita JWT do painel ou `x-api-token`.
+
+- **`/revoke-token`** — **ação de painel (JWT) apenas**. Chamadas via
+  `x-api-token` retornam **403** com `code:"TOKEN_CANNOT_REVOKE_TOKEN"`.
+  Revoga token por `token_id`.
 
 ### Endpoints de administração
 
