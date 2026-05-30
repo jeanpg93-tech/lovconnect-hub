@@ -14,8 +14,10 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
+import { Route as AuthenticatedAdminVersionsRouteImport } from './routes/_authenticated.admin.versions'
 import { Route as AuthenticatedAdminTokensRouteImport } from './routes/_authenticated.admin.tokens'
 import { Route as AuthenticatedAdminResellersRouteImport } from './routes/_authenticated.admin.resellers'
+import { Route as AuthenticatedAdminNotificationsRouteImport } from './routes/_authenticated.admin.notifications'
 import { Route as AuthenticatedAdminLicensesRouteImport } from './routes/_authenticated.admin.licenses'
 import { Route as AuthenticatedAdminCreateLicenseRouteImport } from './routes/_authenticated.admin.create-license'
 
@@ -43,6 +45,12 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminVersionsRoute =
+  AuthenticatedAdminVersionsRouteImport.update({
+    id: '/versions',
+    path: '/versions',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminTokensRoute =
   AuthenticatedAdminTokensRouteImport.update({
     id: '/tokens',
@@ -53,6 +61,12 @@ const AuthenticatedAdminResellersRoute =
   AuthenticatedAdminResellersRouteImport.update({
     id: '/resellers',
     path: '/resellers',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminNotificationsRoute =
+  AuthenticatedAdminNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminLicensesRoute =
@@ -74,8 +88,10 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/admin/create-license': typeof AuthenticatedAdminCreateLicenseRoute
   '/admin/licenses': typeof AuthenticatedAdminLicensesRoute
+  '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/resellers': typeof AuthenticatedAdminResellersRoute
   '/admin/tokens': typeof AuthenticatedAdminTokensRoute
+  '/admin/versions': typeof AuthenticatedAdminVersionsRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesByTo {
@@ -83,8 +99,10 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/admin/create-license': typeof AuthenticatedAdminCreateLicenseRoute
   '/admin/licenses': typeof AuthenticatedAdminLicensesRoute
+  '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/resellers': typeof AuthenticatedAdminResellersRoute
   '/admin/tokens': typeof AuthenticatedAdminTokensRoute
+  '/admin/versions': typeof AuthenticatedAdminVersionsRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesById {
@@ -95,8 +113,10 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/admin/create-license': typeof AuthenticatedAdminCreateLicenseRoute
   '/_authenticated/admin/licenses': typeof AuthenticatedAdminLicensesRoute
+  '/_authenticated/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/_authenticated/admin/resellers': typeof AuthenticatedAdminResellersRoute
   '/_authenticated/admin/tokens': typeof AuthenticatedAdminTokensRoute
+  '/_authenticated/admin/versions': typeof AuthenticatedAdminVersionsRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -107,8 +127,10 @@ export interface FileRouteTypes {
     | '/admin'
     | '/admin/create-license'
     | '/admin/licenses'
+    | '/admin/notifications'
     | '/admin/resellers'
     | '/admin/tokens'
+    | '/admin/versions'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -116,8 +138,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/admin/create-license'
     | '/admin/licenses'
+    | '/admin/notifications'
     | '/admin/resellers'
     | '/admin/tokens'
+    | '/admin/versions'
     | '/admin'
   id:
     | '__root__'
@@ -127,8 +151,10 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/admin/create-license'
     | '/_authenticated/admin/licenses'
+    | '/_authenticated/admin/notifications'
     | '/_authenticated/admin/resellers'
     | '/_authenticated/admin/tokens'
+    | '/_authenticated/admin/versions'
     | '/_authenticated/admin/'
   fileRoutesById: FileRoutesById
 }
@@ -175,6 +201,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/versions': {
+      id: '/_authenticated/admin/versions'
+      path: '/versions'
+      fullPath: '/admin/versions'
+      preLoaderRoute: typeof AuthenticatedAdminVersionsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/tokens': {
       id: '/_authenticated/admin/tokens'
       path: '/tokens'
@@ -187,6 +220,13 @@ declare module '@tanstack/react-router' {
       path: '/resellers'
       fullPath: '/admin/resellers'
       preLoaderRoute: typeof AuthenticatedAdminResellersRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/notifications': {
+      id: '/_authenticated/admin/notifications'
+      path: '/notifications'
+      fullPath: '/admin/notifications'
+      preLoaderRoute: typeof AuthenticatedAdminNotificationsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/licenses': {
@@ -209,16 +249,20 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminCreateLicenseRoute: typeof AuthenticatedAdminCreateLicenseRoute
   AuthenticatedAdminLicensesRoute: typeof AuthenticatedAdminLicensesRoute
+  AuthenticatedAdminNotificationsRoute: typeof AuthenticatedAdminNotificationsRoute
   AuthenticatedAdminResellersRoute: typeof AuthenticatedAdminResellersRoute
   AuthenticatedAdminTokensRoute: typeof AuthenticatedAdminTokensRoute
+  AuthenticatedAdminVersionsRoute: typeof AuthenticatedAdminVersionsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminCreateLicenseRoute: AuthenticatedAdminCreateLicenseRoute,
   AuthenticatedAdminLicensesRoute: AuthenticatedAdminLicensesRoute,
+  AuthenticatedAdminNotificationsRoute: AuthenticatedAdminNotificationsRoute,
   AuthenticatedAdminResellersRoute: AuthenticatedAdminResellersRoute,
   AuthenticatedAdminTokensRoute: AuthenticatedAdminTokensRoute,
+  AuthenticatedAdminVersionsRoute: AuthenticatedAdminVersionsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
 }
 
