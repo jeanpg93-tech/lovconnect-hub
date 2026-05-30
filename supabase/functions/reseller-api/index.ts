@@ -269,7 +269,7 @@ async function hGenerateLicense({ admin, caller, body }: Ctx): Promise<Response>
   if (error) return fail(`Falha ao gerar licença: ${error.message}`, "DB_ERROR", 500);
 
   if (targetReseller) await recalcUsage(admin, targetReseller);
-  await audit(admin, caller.userId, "generate-license", "license", lic.id, { type, days, hours, minutes });
+  await audit(admin, caller.userId, "generate-license", "license", lic.id, { type, days, hours, minutes, seconds });
 
   return ok({ license_key: key, masked_key: lic.masked_key, id: lic.id, type: lic.type, expires_at: lic.expires_at });
 }
