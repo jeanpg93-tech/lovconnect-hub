@@ -127,16 +127,16 @@ grant select on public.licenses to authenticated;
 grant all on public.licenses to service_role;
 
 -- ---------------------------------------------------------------------------
--- license_devices (HWID bindings)
+-- license_devices (device bindings — only a hash of device_id is stored)
 -- ---------------------------------------------------------------------------
 create table if not exists public.license_devices (
   id uuid primary key default gen_random_uuid(),
   license_id uuid not null references public.licenses(id) on delete cascade,
-  hwid text not null,
+  device_id_hash text not null,
   device_name text,
   first_seen timestamptz not null default now(),
   last_seen timestamptz not null default now(),
-  unique (license_id, hwid)
+  unique (license_id, device_id_hash)
 );
 
 grant select on public.license_devices to authenticated;
